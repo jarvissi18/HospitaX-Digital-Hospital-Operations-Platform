@@ -2,7 +2,7 @@ from collections import Counter
 from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import func
+from sqlalchemy import extract, func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -99,29 +99,47 @@ def top_diseases(db: Session = Depends(get_db)):
         }
         for disease, patients in results
     ]
-    
-    
+
+
 # ================= MONTHLY PATIENTS =================
 
 @router.get("/monthly")
 def monthly_patients(db: Session = Depends(get_db)):
+    current_year = datetime.now().year
+
     results = (
         db.query(
-            func.extract("month", Patient.created_at).label("month"),
+            extract("month", Patient.created_at).label("month"),
             func.count(Patient.id).label("patients"),
         )
-        .group_by(func.extract("month", Patient.created_at))
-        .order_by(func.extract("month", Patient.created_at))
+        .filter(
+            extract("year", Patient.created_at) == current_year
+        )
+        .group_by(
+            extract("month", Patient.created_at)
+        )
+        .order_by(
+            extract("month", Patient.created_at)
+        )
         .all()
     )
 
     month_names = [
-        "Jan", "Feb", "Mar", "Apr",
-        "May", "Jun", "Jul", "Aug",
-        "Sep", "Oct", "Nov", "Dec"
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
     ]
 
-    counts = {m: 0 for m in range(1, 13)}
+    counts = {month: 0 for month in range(1, 13)}
 
     for month, patients in results:
         counts[int(month)] = patients

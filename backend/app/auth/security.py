@@ -1,63 +1,138 @@
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+from dotenv import load_dotenv
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+
+
+# =====================================================
+# ENVIRONMENT
+# =====================================================
+
+load_dotenv()
+
 
 # =====================================================
 # SECURITY CONFIG
 # =====================================================
 
-SECRET_KEY = "CHANGE_THIS_TO_A_RANDOM_SECRET_KEY"
+SECRET_KEY = os.getenv("SECRET_KEY")
 
-ALGORITHM = "HS256"
+if not SECRET_KEY:
+    raise ValueError(
+        "SECRET_KEY not found in .env file"
+    )
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
+
+ALGORITHM = os.getenv(
+    "JWT_ALGORITHM",
+    "HS256",
+)
+
+
+ACCESS_TOKEN_EXPIRE_MINUTES = int(
+    os.getenv(
+        "ACCESS_TOKEN_EXPIRE_MINUTES",
+        "1440",
+    )
+)
+
+
+# =====================================================
+# PASSWORD HASHING
+# =====================================================
 
 pwd_context = CryptContext(
     schemes=["bcrypt"],
     deprecated="auto",
 )
 
-# =====================================================
-# PASSWORD
-# =====================================================
 
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+def hash_password(
+    password: str,
+) -> str:
+    """
+    Hash a plain-text password using bcrypt.
+    """
+
+    return pwd_context.hash(
+        password
+    )
 
 
 def verify_password(
     plain_password: str,
     hashed_password: str,
 ) -> bool:
+    """
+    Verify a plain-text password against
+    its stored bcrypt hash.
+    """
+
     return pwd_context.verify(
         plain_password,
         hashed_password,
     )
 
+def hash_pin(
+    pin: str,
+) -> str:
+    """
+    Hash a plain-text PIN using bcrypt.
+    """
+
+    return pwd_context.hash(
+        pin
+    )
+
+
+def verify_pin(
+    plain_pin: str,
+    hashed_pin: str,
+) -> bool:
+    """
+    Verify a plain-text PIN against
+    its stored bcrypt hash.
+    """
+
+    return pwd_context.verify(
+        plain_pin,
+        hashed_pin,
+    )
+
 # =====================================================
-# JWT
+# JWT ACCESS TOKEN
 # =====================================================
 
 def create_access_token(
     data: dict,
     expires_delta: Optional[timedelta] = None,
-):
+) -> str:
+    """
+    Create a signed JWT access token.
+
+    The supplied data is copied so the original
+    dictionary is not modified.
+    """
 
     to_encode = data.copy()
 
-    expire = datetime.now(timezone.utc) + (
-        expires_delta
-        if expires_delta
-        else timedelta(
-            minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+    if expires_delta:
+        expire = (
+            datetime.now(timezone.utc)
+            + expires_delta
         )
-    )
+    else:
+        expire = (
+            datetime.now(timezone.utc)
+            + timedelta(
+                minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+            )
+        )
 
-    to_encode.update(
-        {"exp": expire}
-    )
+    to_encode["exp"] = expire
 
     return jwt.encode(
         to_encode,
@@ -66,10 +141,22 @@ def create_access_token(
     )
 
 
-def decode_access_token(token: str):
+# =====================================================
+# JWT ACCESS TOKEN DECODER
+# =====================================================
+
+def decode_access_token(
+    token: str,
+):
+    """
+    Decode and validate a JWT access token.
+
+    Returns:
+        payload dictionary when valid
+        None when invalid or expired
+    """
 
     try:
-
         payload = jwt.decode(
             token,
             SECRET_KEY,

@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Patient
+
 
 router = APIRouter(
     prefix="/dashboard",
@@ -14,22 +15,51 @@ router = APIRouter(
 
 
 @router.get("/stats")
-def get_dashboard_stats(db: Session = Depends(get_db)):
-    today = datetime.now(timezone.utc).date()
+def get_dashboard_stats(
+    db: Session = Depends(get_db),
+):
+    """
+    Return dashboard-level statistics.
 
-    total_patients = db.query(Patient).count()
+    Admission/discharge based active-case metrics
+    will be introduced in the Admission module.
+    Until then, activeCases remains zero rather
+    than incorrectly treating every patient as active.
+    """
 
-    today_patients = (
+    today = (
+        datetime
+        .now(timezone.utc)
+        .date()
+    )
+
+
+    total_patients = (
         db.query(Patient)
-        .filter(func.date(Patient.created_at) == today)
         .count()
     )
 
-    active_cases = total_patients
+
+    today_patients = (
+        db.query(Patient)
+        .filter(
+            func.date(
+                Patient.created_at
+            ) == today
+        )
+        .count()
+    )
+
 
     return {
         "todayPatients": today_patients,
-        "voiceStatus": "Ready",
         "totalPatients": total_patients,
-        "activeCases": active_cases,
+
+        # Admission module will provide
+        # the real value later.
+        "activeCases": 0,
+
+        # Kept temporarily for backward
+        # compatibility with the existing frontend.
+        "voiceStatus": "Ready",
     }

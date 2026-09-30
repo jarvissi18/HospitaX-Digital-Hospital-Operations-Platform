@@ -1,38 +1,111 @@
 import api from "./api";
 
+// =====================================================
+// TYPES
+// =====================================================
+
 export interface Settings {
   id: number;
 
-  // Hospital
   hospital_name: string;
   hospital_address: string;
   hospital_phone: string;
   hospital_email: string;
 
-  // Admin
   admin_name: string;
   admin_email: string;
   admin_phone: string;
   admin_role: string;
-
-  // Voice AI
-  voice_language: string;
-  voice_timeout: number;
-  voice_confidence: number;
 }
 
-/* ---------------- GET SETTINGS ---------------- */
+// =====================================================
+// UPDATE PAYLOAD
+// =====================================================
+
+export type SettingsUpdate = Omit<
+  Settings,
+  "id"
+>;
+
+// =====================================================
+// GET SETTINGS
+// =====================================================
 
 export const getSettings = async (): Promise<Settings> => {
-  const response = await api.get("/settings/");
-  return response.data;
+  try {
+    const response = await api.get<Settings>(
+      "/settings/"
+    );
+
+    console.log(
+      "GET /settings/ SUCCESS:",
+      response.data
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "GET /settings/ FAILED"
+    );
+
+    console.error(
+      "Status:",
+      error?.response?.status
+    );
+
+    console.error(
+      "Response:",
+      error?.response?.data
+    );
+
+    console.error(
+      "Message:",
+      error?.message
+    );
+
+    throw error;
+  }
 };
 
-/* ---------------- UPDATE SETTINGS ---------------- */
+// =====================================================
+// UPDATE SETTINGS
+// =====================================================
 
 export const updateSettings = async (
-  settings: Omit<Settings, "id">
+  settings: SettingsUpdate
 ): Promise<Settings> => {
-  const response = await api.put("/settings/", settings);
-  return response.data;
+  try {
+    const response = await api.put<Settings>(
+      "/settings/",
+      settings
+    );
+
+    console.log(
+      "PUT /settings/ SUCCESS:",
+      response.data
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "PUT /settings/ FAILED"
+    );
+
+    console.error(
+      "Status:",
+      error?.response?.status
+    );
+
+    console.error(
+      "Response:",
+      error?.response?.data
+    );
+
+    console.error(
+      "Message:",
+      error?.message
+    );
+
+    throw error;
+  }
 };

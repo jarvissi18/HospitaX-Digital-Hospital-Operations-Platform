@@ -1,32 +1,86 @@
 import { Outlet } from "react-router-dom";
-import Navbar from "../components/layout/Navbar";
 import Sidebar from "../components/layout/Sidebar";
 
 export default function MainLayout() {
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50">
-      {/* Sidebar */}
-      <aside className="fixed left-0 top-0 z-40 h-screen w-72">
+    <div className="flex h-screen min-h-0 overflow-hidden bg-[#F5F8FC]">
+
+      {/* =====================================================
+          SIDEBAR
+      ===================================================== */}
+
+      <aside
+        className="
+          fixed
+          inset-y-0
+          left-0
+          z-40
+          hidden
+          w-[280px]
+          shrink-0
+          lg:block
+        "
+      >
         <Sidebar />
       </aside>
 
-      {/* Right Side */}
-      <div className="ml-72 flex h-screen flex-1 flex-col overflow-hidden">
-        {/* Navbar */}
-        <header className="shrink-0">
-          <Navbar />
-        </header>
 
-        {/* Page */}
-        <main className="flex-1 overflow-hidden bg-slate-50">
-          <div className="h-full p-8 lg:p-10">
-            {/* IMPORTANT */}
-            <div className="h-full">
+      {/* =====================================================
+          APPLICATION CONTENT
+      ===================================================== */}
+
+      <div
+        className="
+          ml-0
+          flex
+          h-screen
+          min-h-0
+          min-w-0
+          flex-1
+          flex-col
+          overflow-hidden
+          lg:ml-[280px]
+        "
+      >
+
+        <main
+          className="
+            min-h-0
+            min-w-0
+            flex-1
+            overflow-hidden
+            bg-[#F5F8FC]
+          "
+        >
+
+          <div
+            className="
+              h-full
+              min-h-0
+              overflow-hidden
+              p-4
+              sm:p-5
+              lg:p-6
+              xl:p-7
+            "
+          >
+
+            <div
+              className="
+                h-full
+                min-h-0
+                overflow-hidden
+              "
+            >
               <Outlet />
             </div>
+
           </div>
+
         </main>
+
       </div>
+
     </div>
   );
 }

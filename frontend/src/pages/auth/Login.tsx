@@ -3,51 +3,65 @@ import LoginCard from "../../components/auth/LoginCard";
 
 export default function Login() {
   return (
-    <div className="relative h-screen overflow-hidden">
+    <div className="relative h-screen min-h-[620px] overflow-hidden bg-[#071A3A]">
+      {/* =====================================================
+          GLOBAL BACKGROUND
+      ===================================================== */}
 
-      {/* ===== Global Background ===== */}
-
-      <div className="absolute inset-0 bg-[#0A1F44]" />
+      <div className="absolute inset-0 bg-[#071A3A]" />
 
       {/* Grid */}
-
       <div
-        className="absolute inset-0 opacity-[0.05]"
+        className="absolute inset-0 opacity-[0.045]"
         style={{
           backgroundImage:
-            "linear-gradient(#ffffff 1px,transparent 1px),linear-gradient(90deg,#ffffff 1px,transparent 1px)",
+            "linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)",
           backgroundSize: "42px 42px",
         }}
       />
 
-      {/* Glow */}
+      {/* Ambient Glow */}
+      <div className="absolute -left-48 -top-48 h-[560px] w-[560px] rounded-full bg-blue-500/15 blur-[140px]" />
 
-      <div className="absolute -top-52 -left-44 h-[520px] w-[520px] rounded-full bg-blue-500/20 blur-[130px]" />
+      <div className="absolute -bottom-52 left-[42%] h-[560px] w-[560px] rounded-full bg-cyan-400/10 blur-[150px]" />
 
-      <div className="absolute bottom-[-180px] right-[-150px] h-[520px] w-[520px] rounded-full bg-cyan-400/10 blur-[140px]" />
+      {/* =====================================================
+          MAIN LAYOUT
+      ===================================================== */}
 
-      {/* Content */}
+      <div className="relative z-10 mx-auto flex h-full w-full max-w-[1800px]">
+        {/* =================================================
+            LEFT — PRODUCT INTRODUCTION
+        ================================================= */}
 
-      <div className="relative z-10 mx-auto flex h-full max-w-[1700px]">
-
-        {/* Left */}
-
-        <div className="hidden w-[60%] lg:flex">
-
+        <div className="hidden h-full min-h-0 lg:flex lg:w-[55%]">
           <LoginBanner />
-
         </div>
 
-        {/* Right */}
+        {/* =================================================
+            RIGHT — LOGIN
+        ================================================= */}
 
-        <div className="flex w-full items-center justify-center lg:w-[70%]">
-
+        <div
+          className="
+            flex
+            h-full
+            min-h-0
+            w-full
+            items-center
+            justify-center
+            px-4
+            py-5
+            sm:px-6
+            lg:w-[45%]
+            lg:px-8
+            lg:py-6
+            xl:px-12
+          "
+        >
           <LoginCard />
-
         </div>
-
       </div>
-
     </div>
   );
 }

@@ -7,32 +7,60 @@ const api = axios.create({
   },
 });
 
-// Automatically attach JWT token
+// =====================================================
+// REQUEST INTERCEPTOR
+// =====================================================
+
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
 
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization =
+        `Bearer ${token}`;
     }
 
     return config;
   },
-  (error) => Promise.reject(error)
+
+  (error) => {
+    return Promise.reject(error);
+  }
 );
 
-// Handle Unauthorized
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (
-  error.response?.status === 401 &&
-  window.location.pathname !== "/"
-) {
-  console.warn("Unauthorized request");
 
-  // Don't force logout.
-}
+// =====================================================
+// RESPONSE INTERCEPTOR
+// =====================================================
+
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+
+  (error) => {
+    const status = error?.response?.status;
+
+    // -------------------------------------------------
+    // AUTHENTICATION FAILED
+    // -------------------------------------------------
+
+    if (
+      status === 401 &&
+      window.location.pathname !== "/"
+    ) {
+      console.warn(
+        "Authentication expired or user no longer exists."
+      );
+
+      // Remove invalid authentication
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+
+      // Redirect to login
+      window.location.href = "/";
+    }
+
     return Promise.reject(error);
   }
 );

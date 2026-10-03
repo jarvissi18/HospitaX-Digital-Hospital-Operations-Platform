@@ -1777,15 +1777,6 @@ Building HospitaX provides practical experience with:
 
 <div align="center">
 
-# 🔗 Repository
-
-
-### Explore the Project
-
-**GitHub Repository**
-
-https://github.com/jarvissi18/HospitaX-Digital-Hospital-Operations-Platform
-
 <br />
 
 **Author**

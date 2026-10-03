@@ -997,7 +997,7 @@ Project screenshots are maintained under the repository's `docs/` directory and 
 
 ## 🔐 Login
 
-![HospitaX Login](./docs/login.png)
+![HospitaX Login](./docs/staffs-login.png)
 
 ## 📊 Administrator Dashboard
 

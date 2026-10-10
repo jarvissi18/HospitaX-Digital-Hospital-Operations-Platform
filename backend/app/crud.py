@@ -3915,11 +3915,7 @@ def get_work_tasks(
     for task in tasks:
 
         if (
-            task.status
-            in {
-                "Pending",
-                "In Progress",
-            }
+            task.status == "Pending"
             and task.due_at is not None
         ):
 
@@ -3991,11 +3987,7 @@ def get_work_tasks_for_user(
     for task in tasks:
 
         if (
-            task.status
-            in {
-                "Pending",
-                "In Progress",
-            }
+            task.status == "Pending"
             and task.due_at is not None
         ):
 

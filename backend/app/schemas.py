@@ -4905,3 +4905,28 @@ class FollowUpResponse(BaseModel):
     model_config = ConfigDict(
         from_attributes=True,
     )
+    
+
+# =====================================================
+# NOTIFICATION SCHEMAS
+# =====================================================
+
+class NotificationResponse(BaseModel):
+    """Standard response for a user notification."""
+
+    id: int
+    title: str
+    message: str
+    notification_type: str
+    is_read: bool
+    created_at: datetime
+
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
+
+
+class NotificationUnreadCount(BaseModel):
+    """Unread notification count for the authenticated user."""
+
+    unread_count: int

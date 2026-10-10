@@ -16,34 +16,24 @@ api.interceptors.request.use(
     const token = localStorage.getItem("token");
 
     if (token) {
-      config.headers.Authorization =
-        `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
     }
 
     return config;
   },
-
   (error) => {
     return Promise.reject(error);
   }
 );
-
 
 // =====================================================
 // RESPONSE INTERCEPTOR
 // =====================================================
 
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-
+  (response) => response,
   (error) => {
     const status = error?.response?.status;
-
-    // -------------------------------------------------
-    // AUTHENTICATION FAILED
-    // -------------------------------------------------
 
     if (
       status === 401 &&
@@ -53,16 +43,73 @@ api.interceptors.response.use(
         "Authentication expired or user no longer exists."
       );
 
-      // Remove invalid authentication
       localStorage.removeItem("token");
       localStorage.removeItem("user");
 
-      // Redirect to login
       window.location.href = "/";
     }
 
     return Promise.reject(error);
   }
 );
+
+// =====================================================
+// NOTIFICATION TYPES
+// =====================================================
+
+export interface NotificationItem {
+  id: number;
+  title: string;
+  message: string;
+  notification_type: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface NotificationUnreadCount {
+  unread_count: number;
+}
+
+// =====================================================
+// NOTIFICATION API
+// =====================================================
+
+export const getNotifications = async (): Promise<
+  NotificationItem[]
+> => {
+  const response = await api.get<NotificationItem[]>(
+    "/notifications"
+  );
+
+  return response.data;
+};
+
+export const getUnreadNotificationCount = async (): Promise<
+  NotificationUnreadCount
+> => {
+  const response = await api.get<NotificationUnreadCount>(
+    "/notifications/unread-count"
+  );
+
+  return response.data;
+};
+
+export const markNotificationAsRead = async (
+  notificationId: number
+) => {
+  const response = await api.patch(
+    `/notifications/${notificationId}/read`
+  );
+
+  return response.data;
+};
+
+export const markAllNotificationsAsRead = async () => {
+  const response = await api.patch(
+    "/notifications/read-all"
+  );
+
+  return response.data;
+};
 
 export default api;

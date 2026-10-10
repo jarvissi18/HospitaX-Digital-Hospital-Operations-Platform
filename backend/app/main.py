@@ -5,6 +5,7 @@ from app.database import Base, engine
 from app import models
 
 from app.routers import work_tasks
+from app.routers import notifications
 from app.routers import clinical_encounters, nursing_observations
 from app.routers import appointments
 from app.routers import patient_queue
@@ -15,6 +16,7 @@ from app.routers import transfers
 from app.routers import discharge
 from app.routers import followups
 from app.routers import ai_operations
+
 
 from app.routers import (
     patients,
@@ -93,6 +95,14 @@ app.include_router(
 
 app.include_router(
     work_tasks.router
+)
+
+# -----------------------------------------------------
+# NOTIFICATIONS
+# -----------------------------------------------------
+
+app.include_router(
+    notifications.router
 )
 
 # -----------------------------------------------------

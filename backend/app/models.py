@@ -3913,3 +3913,42 @@ class FollowUp(Base):
             return None
 
         return self.doctor.full_name
+    
+# =====================================================
+# NOTIFICATIONS
+# =====================================================
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    title = Column(String(200), nullable=False)
+    message = Column(String(1000), nullable=False)
+    notification_type = Column(
+        String(50),
+        nullable=False,
+        default="general",
+    )
+
+    is_read = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        index=True,
+    )
+
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    user = relationship("User")

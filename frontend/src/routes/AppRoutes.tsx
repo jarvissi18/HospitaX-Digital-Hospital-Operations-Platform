@@ -5,6 +5,7 @@ import {
 } from "react-router-dom";
 
 import WorkManagement from "../pages/work-management/WorkManagement";
+import Notifications from "../pages/notifications/Notifications";
 
 // =====================================================
 // AUTH
@@ -260,10 +261,6 @@ export default function AppRoutes() {
         element={<Login />}
       />
 
-      <Route
-        path="/login"
-        element={<Login />}
-      />
 
       {/* =================================================
           PROTECTED APPLICATION
@@ -295,6 +292,9 @@ export default function AppRoutes() {
           element={<WorkManagement />}
         />
 
+
+        <Route path="/notifications" element={<Notifications />} />
+        
         {/* =================================================
             APPOINTMENTS
             Administrator / Receptionist / Doctor

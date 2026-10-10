@@ -81,6 +81,72 @@ def doctor_required(
 
 
 # ============================================================
+# PATIENT ACCESS AUTHORIZATION
+# ============================================================
+
+def require_patient_access(
+    db: Session,
+    patient_id: int,
+    current_user: models.User,
+):
+    """
+    Administrator:
+        May access referrals for any patient.
+
+    Doctor:
+        Must have an active assignment to the patient.
+
+    Nurse:
+        Must have an active assignment to the patient.
+
+    All other roles fail closed.
+    """
+
+    patient = crud.get_patient(db, patient_id)
+
+    if patient is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Patient not found.",
+        )
+
+    # Preserve administrator access.
+    if current_user.role == "Administrator":
+        return patient
+
+    # Only Doctors and Nurses can proceed beyond this point.
+    if current_user.role not in {"Doctor", "Nurse"}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not authorized to access this patient.",
+        )
+
+    assignment_query = db.query(models.PatientAssignment).filter(
+        models.PatientAssignment.patient_id == patient_id,
+        models.PatientAssignment.status == "Active",
+    )
+
+    if current_user.role == "Doctor":
+        assignment_query = assignment_query.filter(
+            models.PatientAssignment.doctor_id == current_user.id,
+        )
+    else:
+        assignment_query = assignment_query.filter(
+            models.PatientAssignment.nurse_id == current_user.id,
+        )
+
+    assignment = assignment_query.first()
+
+    if assignment is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not authorized to access this patient.",
+        )
+
+    return patient
+
+
+# ============================================================
 # CREATE
 # ============================================================
 
@@ -95,6 +161,8 @@ def create_referral(
     current_user: models.User = Depends(doctor_required),
 ):
     try:
+        # Existing CRUD validation and referral business rules
+        # remain unchanged.
         return crud.create_referral(
             db,
             referral,
@@ -108,7 +176,7 @@ def create_referral(
 
 
 # ============================================================
-# READ
+# READ: PATIENT REFERRALS
 # ============================================================
 
 @router.get(
@@ -118,13 +186,23 @@ def create_referral(
 def get_patient_referrals(
     patient_id: int,
     db: Session = Depends(get_db),
-    _: models.User = Depends(referral_view_required),
+    current_user: models.User = Depends(referral_view_required),
 ):
+    require_patient_access(
+        db=db,
+        patient_id=patient_id,
+        current_user=current_user,
+    )
+
     return crud.get_referrals_for_patient(
         db,
         patient_id,
     )
 
+
+# ============================================================
+# READ: ENCOUNTER REFERRALS
+# ============================================================
 
 @router.get(
     "/encounter/{encounter_id}",
@@ -133,13 +211,34 @@ def get_patient_referrals(
 def get_encounter_referrals(
     encounter_id: int,
     db: Session = Depends(get_db),
-    _: models.User = Depends(referral_view_required),
+    current_user: models.User = Depends(referral_view_required),
 ):
+    encounter = crud.get_clinical_encounter(
+        db,
+        encounter_id,
+    )
+
+    if encounter is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Clinical encounter not found.",
+        )
+
+    require_patient_access(
+        db=db,
+        patient_id=encounter.patient_id,
+        current_user=current_user,
+    )
+
     return crud.get_referrals_for_encounter(
         db,
         encounter_id,
     )
 
+
+# ============================================================
+# READ: MY REFERRALS
+# ============================================================
 
 @router.get(
     "/my",
@@ -155,6 +254,10 @@ def get_my_referrals(
     )
 
 
+# ============================================================
+# READ: SINGLE REFERRAL
+# ============================================================
+
 @router.get(
     "/{referral_id}",
     response_model=schemas.ReferralResponse,
@@ -162,15 +265,24 @@ def get_my_referrals(
 def get_referral(
     referral_id: int,
     db: Session = Depends(get_db),
-    _: models.User = Depends(referral_view_required),
+    current_user: models.User = Depends(referral_view_required),
 ):
-    referral = crud.get_referral(db, referral_id)
+    referral = crud.get_referral(
+        db,
+        referral_id,
+    )
 
     if referral is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Referral not found.",
         )
+
+    require_patient_access(
+        db=db,
+        patient_id=referral.patient_id,
+        current_user=current_user,
+    )
 
     return referral
 

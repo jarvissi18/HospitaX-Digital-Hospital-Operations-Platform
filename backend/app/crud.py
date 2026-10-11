@@ -4826,9 +4826,24 @@ def create_clinical_encounter(
 
     _validate_doctor_user(doctor)
 
-    _validate_clinical_encounter_status(
-        encounter.status
+    # Verify that this doctor is actively assigned to the patient.
+    active_assignment = (
+        db.query(models.PatientAssignment)
+        .filter(
+            models.PatientAssignment.patient_id == patient_id,
+            models.PatientAssignment.doctor_id == doctor_id,
+            models.PatientAssignment.status == "Active",
+        )
+        .first()
     )
+
+    if active_assignment is None:
+        raise ValueError(
+            "You are not authorized to create a clinical encounter "
+            "for this patient. An active patient assignment is required."
+        )
+
+    _validate_clinical_encounter_status(encounter.status)
 
     db_encounter = models.ClinicalEncounter(
         patient_id=patient_id,
@@ -4863,18 +4878,20 @@ def update_clinical_encounter(
     if db_encounter is None:
         return None
 
-    if db_encounter.status == "Cancelled":
+    if db_encounter.status in {"Completed", "Cancelled"}:
         raise ValueError(
-            "Cancelled clinical encounters cannot be modified."
+            f"{db_encounter.status} clinical encounters cannot be modified."
         )
 
     update_data = encounter.model_dump(
         exclude_unset=True
     )
 
+    # Status transitions must use dedicated endpoints.
     if "status" in update_data:
-        _validate_clinical_encounter_status(
-            update_data["status"]
+        raise ValueError(
+            "Clinical encounter status cannot be changed through "
+            "this endpoint. Use the dedicated complete or cancel endpoint."
         )
 
     for field, value in update_data.items():
@@ -4888,7 +4905,6 @@ def update_clinical_encounter(
     db.refresh(db_encounter)
 
     return db_encounter
-
 
 def complete_clinical_encounter(
     db: Session,
@@ -9283,6 +9299,7 @@ def get_prescriptions_for_encounter(
     )
 
 
+
 def get_prescriptions_for_doctor(
     db: Session,
     doctor_id: int,
@@ -9290,14 +9307,14 @@ def get_prescriptions_for_doctor(
     return (
         _prescription_query(db)
         .filter(
-            models.Prescription.prescribed_by_id
-            == prescribed_by_id
+            models.Prescription.prescribed_by_id == doctor_id
         )
         .order_by(
             models.Prescription.prescribed_at.desc()
         )
         .all()
     )
+
 
 
 def _validate_prescription_doctor(
@@ -9359,16 +9376,13 @@ def _validate_prescription_encounter(
     encounter = (
         db.query(models.ClinicalEncounter)
         .filter(
-            models.ClinicalEncounter.id
-            == encounter_id
+            models.ClinicalEncounter.id == encounter_id
         )
         .first()
     )
 
     if encounter is None:
-        raise ValueError(
-            "Clinical encounter not found."
-        )
+        raise ValueError("Clinical encounter not found.")
 
     if encounter.patient_id != patient_id:
         raise ValueError(
@@ -9385,8 +9399,23 @@ def _validate_prescription_encounter(
             "Prescription cannot be created for a cancelled encounter."
         )
 
-    return encounter
+    active_assignment = (
+        db.query(models.PatientAssignment)
+        .filter(
+            models.PatientAssignment.patient_id == patient_id,
+            models.PatientAssignment.doctor_id == doctor_id,
+            models.PatientAssignment.status == "Active",
+        )
+        .first()
+    )
 
+    if active_assignment is None:
+        raise ValueError(
+            "You are not authorized to prescribe for this patient. "
+            "An active patient assignment is required."
+        )
+
+    return encounter
 
 def _validate_prescription_status(
     status: str,

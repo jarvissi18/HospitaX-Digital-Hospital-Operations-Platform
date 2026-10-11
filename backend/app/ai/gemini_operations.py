@@ -38,6 +38,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 from google.api_core.exceptions import ResourceExhausted
+from google.genai.errors import ServerError
 
 from app.ai.permissions import PermissionEngine, permission_engine
 from app.ai.tools import get_tool, list_tools
@@ -1201,8 +1202,8 @@ def plan_ai_operation(
             plan=raw_plan,
             authorized_tools=authorized_tools,
         )
-        
-        
+
+
 
         # ----------------------------------------------------
         # BACKEND ARGUMENT NORMALIZATION
@@ -1346,6 +1347,41 @@ def plan_ai_operation(
             "Gemini API quota exceeded. "
             "Please try again later."
         ) from exc
+
+
+    # --------------------------------------------------------
+    # GEMINI TEMPORARY SERVER ERROR
+    # --------------------------------------------------------
+
+    except ServerError as exc:
+
+        print(
+            "\n"
+            + "=" * 70
+        )
+
+        print(
+            "[AI PLANNER SERVER ERROR]"
+        )
+
+        print(
+            f"Exception Type: {type(exc).__name__}"
+        )
+
+        print(
+            "Gemini service is temporarily unavailable."
+        )
+
+        print(
+            "=" * 70
+            + "\n"
+        )
+
+        raise RuntimeError(
+            "The AI service is temporarily unavailable. "
+            "Please try again shortly."
+        ) from exc
+
 
     # --------------------------------------------------------
     # OTHER PLANNER ERRORS

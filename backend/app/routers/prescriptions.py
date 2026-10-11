@@ -184,30 +184,45 @@ def get_patient_prescriptions(
 # GET ENCOUNTER PRESCRIPTIONS
 # =====================================================
 @router.get(
-          "/encounter/{encounter_id}",
-          response_model=List[
-                    schemas.PrescriptionResponse
-          ],
+    "/encounter/{encounter_id}",
+    response_model=List[schemas.PrescriptionResponse],
 )
 def get_encounter_prescriptions(
-          encounter_id: int,
-          db: Session = Depends(get_db),
-          current_user: models.User = Depends(
-                    prescription_view_required
-          ),
+    encounter_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(
+        prescription_view_required
+    ),
 ):
-          prescriptions = crud.get_prescriptions_for_encounter(
-                    db,
-                    encounter_id,
-          )
-          # Validate each returned record before sending any data to the caller.
-          for prescription in prescriptions:
-                    ensure_patient_access(
-                              db,
-                              current_user,
-                              prescription.patient_id,
-                    )
-          return prescriptions
+    # First, verify that the encounter exists.
+    encounter = (
+        db.query(models.ClinicalEncounter)
+        .filter(
+            models.ClinicalEncounter.id == encounter_id
+        )
+        .first()
+    )
+
+    if encounter is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Clinical encounter not found.",
+        )
+
+    # Verify access using the encounter's patient,
+    # even when no prescriptions exist.
+    ensure_patient_access(
+        db,
+        current_user,
+        encounter.patient_id,
+    )
+
+    # Return prescriptions only after authorization.
+    return crud.get_prescriptions_for_encounter(
+        db,
+        encounter_id,
+    )
+
 # =====================================================
 # GET MY PRESCRIPTIONS
 # =====================================================

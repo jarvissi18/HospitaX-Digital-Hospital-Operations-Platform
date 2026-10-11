@@ -1016,6 +1016,7 @@ class PermissionEngine:
             for permission in self._permissions
         )
 
+
     def get_permission(
         self,
         role: str | Role,
@@ -1023,9 +1024,10 @@ class PermissionEngine:
         action: str | Action,
     ) -> Optional[Permission]:
         """
-        Return the matching permission definition.
+        Return the most specific matching permission.
 
-        Returns None when access is denied.
+        Explicit single-role rules take precedence over
+        shared-role rules. Returns None when access is denied.
         """
 
         normalized_role = self._normalize_role(role)
@@ -1039,15 +1041,30 @@ class PermissionEngine:
         ):
             return None
 
-        for permission in self._permissions:
+        matches = [
+            permission
+            for permission in self._permissions
             if (
                 permission.resource == normalized_resource
                 and normalized_role in permission.roles
                 and normalized_action in permission.actions
-            ):
-                return permission
+            )
+        ]
 
-        return None
+        if not matches:
+            return None
+
+        # Prefer a rule explicitly defined for this role.
+        specific_matches = [
+            permission
+            for permission in matches
+            if permission.roles == frozenset({normalized_role})
+        ]
+
+        if specific_matches:
+            return specific_matches[0]
+
+        return matches[0]
 
     def requires_confirmation(
         self,

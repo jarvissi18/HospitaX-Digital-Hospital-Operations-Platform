@@ -1,9 +1,10 @@
+
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app import crud, schemas
+from app import crud, schemas, models
 from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.models import User
@@ -19,7 +20,6 @@ router = APIRouter(
 # ROLE VALIDATION
 # =====================================================
 
-
 def _require_doctor(current_user: User):
     if current_user.role != "Doctor":
         raise HTTPException(
@@ -31,9 +31,47 @@ def _require_doctor(current_user: User):
 
 
 # =====================================================
-# CREATE CLINICAL ENCOUNTER
+# ACTIVE PATIENT ASSIGNMENT VALIDATION
 # =====================================================
 
+def _require_active_patient_assignment(
+    db: Session,
+    patient_id: int,
+    current_user: User,
+):
+    patient = (
+        db.query(models.Patient)
+        .filter(models.Patient.id == patient_id)
+        .first()
+    )
+
+    if patient is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Patient not found.",
+        )
+
+    assignment = (
+        db.query(models.PatientAssignment)
+        .filter(
+            models.PatientAssignment.patient_id == patient_id,
+            models.PatientAssignment.doctor_id == current_user.id,
+            models.PatientAssignment.status == "Active",
+        )
+        .first()
+    )
+
+    if assignment is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not authorized to access this patient. "
+                   "An active patient assignment is required.",
+        )
+
+
+# =====================================================
+# CREATE CLINICAL ENCOUNTER
+# =====================================================
 
 @router.post(
     "/",
@@ -54,7 +92,6 @@ def create_clinical_encounter(
             doctor_id=current_user.id,
             encounter=encounter,
         )
-
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -65,7 +102,6 @@ def create_clinical_encounter(
 # =====================================================
 # GET MY CLINICAL ENCOUNTERS
 # =====================================================
-
 
 @router.get(
     "/my",
@@ -84,9 +120,8 @@ def get_my_clinical_encounters(
 
 
 # =====================================================
-# GET CLINICAL ENCOUNTERS FOR A PATIENT
+# GET CLINICAL HISTORY FOR A PATIENT
 # =====================================================
-
 
 @router.get(
     "/patient/{patient_id}",
@@ -99,18 +134,21 @@ def get_patient_clinical_history(
 ):
     _require_doctor(current_user)
 
-    encounters = crud.get_clinical_encounters_for_patient(
+    _require_active_patient_assignment(
+        db=db,
+        patient_id=patient_id,
+        current_user=current_user,
+    )
+
+    return crud.get_clinical_encounters_for_patient(
         db=db,
         patient_id=patient_id,
     )
-
-    return encounters
 
 
 # =====================================================
 # GET SINGLE CLINICAL ENCOUNTER
 # =====================================================
-
 
 @router.get(
     "/{encounter_id}",
@@ -134,15 +172,17 @@ def get_clinical_encounter(
             detail="Clinical encounter not found.",
         )
 
-    # -------------------------------------------------
-    # DOCTOR OWNERSHIP
-    # -------------------------------------------------
-
     if encounter.doctor_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not authorized to access this clinical encounter.",
         )
+
+    _require_active_patient_assignment(
+        db=db,
+        patient_id=encounter.patient_id,
+        current_user=current_user,
+    )
 
     return encounter
 
@@ -150,7 +190,6 @@ def get_clinical_encounter(
 # =====================================================
 # UPDATE CLINICAL ENCOUNTER
 # =====================================================
-
 
 @router.put(
     "/{encounter_id}",
@@ -181,13 +220,18 @@ def update_clinical_encounter(
             detail="You are not authorized to modify this clinical encounter.",
         )
 
+    _require_active_patient_assignment(
+        db=db,
+        patient_id=existing.patient_id,
+        current_user=current_user,
+    )
+
     try:
         return crud.update_clinical_encounter(
             db=db,
             encounter_id=encounter_id,
             encounter=encounter,
         )
-
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -198,7 +242,6 @@ def update_clinical_encounter(
 # =====================================================
 # COMPLETE CLINICAL ENCOUNTER
 # =====================================================
-
 
 @router.post(
     "/{encounter_id}/complete",
@@ -228,12 +271,17 @@ def complete_clinical_encounter(
             detail="You are not authorized to complete this clinical encounter.",
         )
 
+    _require_active_patient_assignment(
+        db=db,
+        patient_id=existing.patient_id,
+        current_user=current_user,
+    )
+
     try:
         return crud.complete_clinical_encounter(
             db=db,
             encounter_id=encounter_id,
         )
-
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -244,7 +292,6 @@ def complete_clinical_encounter(
 # =====================================================
 # CANCEL CLINICAL ENCOUNTER
 # =====================================================
-
 
 @router.post(
     "/{encounter_id}/cancel",
@@ -274,12 +321,17 @@ def cancel_clinical_encounter(
             detail="You are not authorized to cancel this clinical encounter.",
         )
 
+    _require_active_patient_assignment(
+        db=db,
+        patient_id=existing.patient_id,
+        current_user=current_user,
+    )
+
     try:
         return crud.cancel_clinical_encounter(
             db=db,
             encounter_id=encounter_id,
         )
-
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
